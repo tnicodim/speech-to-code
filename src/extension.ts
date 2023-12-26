@@ -1,49 +1,21 @@
 import * as vscode from 'vscode';
 import { processTranscription } from './transcriptionHandler';
+import { sampleRateHertz, request, wordCorrections } from './variables';
+import { tokenize } from './functions';
 const { exec } = require('child_process');
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
 
-const wordCorrections: Record<string, string> = {
-  'some': 'sum',
-  'one': '1',
-  'two': '2',
-  'three': '3',
-  'four': '4',
-  'five': '5',
-  'six': '6',
-  'seven': '7',
-  'eight': '8',
-  'nine': '9',
-  'zero': '0',
-  'compiled': 'compile'
-};
 
-const encoding = 'LINEAR16';
-const sampleRateHertz = 16000;
-const languageCode = 'en-US';
-const request = {
-  config: {
-    encoding: encoding,
-    sampleRateHertz: sampleRateHertz,
-    languageCode: languageCode,
-    speechContexts: [{
-      phrases: ['function sum', 'compile', 'sum', 'function', 'define', 'parameters', 'variable', 'array', 'for loop', 'if statement', 'boolean', 'string', 'integer', 'class', 'object', 'method', 'property']
-    }],
-  },
-  interimResults: false,
-};
 
 let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
 
-function tokenize(text: string): string[] {
-  const words: string[] = text.match(/\b\w+\b/g) || [];
-  const lowercasedWords: string[] = words.map(word => word.toLowerCase());
-  return lowercasedWords;
-}
+
+
+
 
 function startRecording() {
   recognizeStream = client
