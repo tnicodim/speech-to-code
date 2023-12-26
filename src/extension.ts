@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
-import * as functions from './functions';
-import * as recordingConfig from './recordingConfig';
-import * as transcriptionHandler from './transcriptionHandler';
+import { processTranscription } from './transcriptionHandler';
 const { exec } = require('child_process');
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
@@ -44,31 +42,7 @@ let recording: any;
 function tokenize(text: string): string[] {
   const words: string[] = text.match(/\b\w+\b/g) || [];
   const lowercasedWords: string[] = words.map(word => word.toLowerCase());
-  console.log('lowercased: ', lowercasedWords);
   return lowercasedWords;
-}
-
-function processTranscription(transcription: string[]) {
-  // stop command
-  if (transcription[0] === 'stop') {
-    stopRecording();
-    return;
-    // compile command
-  } else if (transcription[0] === 'compile') {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      const filePath = editor.document.uri.fsPath;
-      if (filePath.endsWith('.py')) {
-        const terminal = vscode.window.createTerminal('Python Terminal');
-        terminal.sendText(`python "${filePath}"`);
-        terminal.show();
-      } else {
-        vscode.window.showErrorMessage('The file is not a Python file (.py)');
-      }
-    } else {
-      vscode.window.showErrorMessage('No active editor');
-    }
-  }
 }
 
 function startRecording() {
@@ -78,16 +52,17 @@ function startRecording() {
     .on('data', (data: { results: { alternatives: { transcript: any; }[]; }[]; }) => {
       const transcription = data.results[0] && data.results[0].alternatives[0]
         ? data.results[0].alternatives[0].transcript
-        : '\n\nReached transcription time limit, press Ctrl+C\n';
-      const correctedTranscription = transcription
+        : '\n\nReached transcription time limit\n';
+      let correctedTranscription = transcription
         .split(' ')
         .map((word: string) => wordCorrections[word.toLowerCase()] || word)
         .join(' ');
-
+        
       transcriptions.push(correctedTranscription);
       processTranscription(tokenize(correctedTranscription));
       process.stdout.write('Transcription: ' + transcription + '\n');
       process.stdout.write('Corrected Transcription: ' + correctedTranscription + '\n');
+      //process.stdout.write('Transcription History: ' + transcriptions + '\n');
     });
 
   recording = recorder.record({
@@ -103,7 +78,7 @@ function startRecording() {
   vscode.window.showInformationMessage('Recording Started!');
 }
 
-function stopRecording() {
+export function stopRecording() {
   if (recording) {
     recording.stop();
   }
