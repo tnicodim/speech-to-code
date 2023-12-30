@@ -7,7 +7,7 @@ export const request = {
     sampleRateHertz: sampleRateHertz,
     languageCode: languageCode,
     speechContexts: [{
-      phrases: ['function sum', 'compile', 'sum', 'function', 'define', 'parameters', 'variable', 'array', 'for loop', 'if statement', 'boolean', 'string', 'integer', 'class', 'object', 'method', 'property']
+      phrases: ['go to', 'go to back', 'go to back line', 'go to two', 'go to line', 'go to next', 'go to end', 'function sum', 'compile', 'sum', 'function', 'define', 'parameters', 'variable', 'array', 'for loop', 'if statement', 'boolean', 'string', 'integer', 'class', 'object', 'method', 'property']
     }],
   },
   interimResults: false,

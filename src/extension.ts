@@ -12,9 +12,7 @@ const client = new speech.SpeechClient();
 let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
-
-
-
+let buffer: any[] = [];
 
 
 function startRecording() {
