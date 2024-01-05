@@ -81,7 +81,7 @@ export function goToCommand(transcription: string[]) {
           goToNextLine(editor);
           break;
 
-        case 'goto back line':
+        case 'goto previous line':
           goToPreviousLine(editor);
           break;
 
@@ -115,7 +115,7 @@ export function goToCommand(transcription: string[]) {
           goToWord(editor, wordNumber);
           break;
 
-        case 'goto back':
+        case 'goto previous':
           goToPreviousWord(editor);
           break;
 
@@ -131,7 +131,47 @@ export function goToCommand(transcription: string[]) {
   }
 }
 
-export function formatCommand(transcription: string[]) { }
+export function otherCommand(transcription: string[]) { 
+  try {
+    // Get the active text editor
+    const editor = vscode.window.activeTextEditor;
+
+    if (editor) {
+      // Handle different cases for navigation
+      const command = transcription.join(' ').toLowerCase();
+
+      switch (command) {
+        case 'undo':
+          undo(editor);
+          break;
+
+        case 'redo':
+          redo(editor);
+          break;
+
+        case 'paste':
+          paste(editor);
+          break;
+
+        case 'format document':
+          formatDocument(editor);
+          break;
+
+        case 'comment line':
+          toggleLineComment(editor);
+          break;
+
+        default:
+          vscode.window.showErrorMessage(`Unsupported other command: ${command}`);
+      }
+    } else {
+      vscode.window.showErrorMessage('No active text editor found.');
+    }
+  } catch (error) {
+    console.error('An error occurred:', error);
+    // Handle or log the error appropriately
+  }
+}
 
 function goToLineEnd(editor: vscode.TextEditor) {
   const currentPosition = editor.selection.active;
@@ -263,5 +303,35 @@ function goToPreviousWord(editor: vscode.TextEditor) {
     console.log('New Selection:', newSelection);
 
     editor.selection = newSelection;
+  }
+}
+
+function undo(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('undo');
+  }
+}
+
+function redo(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('redo');
+  }
+}
+
+function paste(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+  }
+}
+
+function formatDocument(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('editor.action.formatDocument');
+  }
+}
+
+function toggleLineComment(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('editor.action.commentLine');
   }
 }

@@ -7,7 +7,7 @@ export const request = {
     sampleRateHertz: sampleRateHertz,
     languageCode: languageCode,
     speechContexts: [{
-      phrases: ['go to', 'go to back', 'go to back line', 'go to two', 'go to line', 'go to next', 'go to end', 'function sum', 'compile', 'sum', 'function', 'define', 'parameters', 'variable', 'array', 'for loop', 'if statement', 'boolean', 'string', 'integer', 'class', 'object', 'method', 'property']
+      phrases: ['format document' ,'redo' ,'undo' ,'copy' , 'paste' ,'comment line' ,'go to', 'go to previous', 'go to previous line', 'go to two', 'go to line', 'go to next', 'go to end', 'function sum', 'compile', 'sum', 'function', 'define']
     }],
   },
   interimResults: false,

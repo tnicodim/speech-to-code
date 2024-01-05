@@ -1,31 +1,31 @@
 import * as vscode from 'vscode';
+import * as fs from './functions';
 import { stopRecording } from './extension';
-import { compileCommand, defineCommand, goToCommand, formatCommand } from './functions';
 
 export function processTranscription(transcription: string[]) {
   process.stdout.write('parameter: ' + transcription + '\n');
 
   try {
     switch (transcription[0]) {
-
       case 'stop':
         stopRecording();
         return;
 
       case 'compile':
-        compileCommand();
+        fs.compileCommand();
         return;
 
       case 'define':
-        defineCommand(transcription);
+        fs.defineCommand(transcription);
         return;
 
       case 'goto':
-        goToCommand(transcription);
+        fs.goToCommand(transcription);
         return;
 
       default:
-        console.log('Unknown command: ', transcription[0]);
+        fs.otherCommand(transcription);
+        // console.log('Unknown command: ', transcription[0]);
         // Handle unrecognized commands or add more cases as needed
         break;
     }
@@ -75,11 +75,11 @@ Command: "goto [wordNumber]"
 Description: Move the cursor to the start of the specified word on the current line.
 +------------------------+-----------------------------+-----------------------------------+
 9. Go to Previous Word
-Command: "goto back"
+Command: "goto previous"
 Description: Move the cursor to the start of the previous word.
 +------------------------+-----------------------------+-----------------------------------+
 10. Go to Previous Line
-Command: "goto back line"
+Command: "goto previous line"
 Description: Move the cursor to the start of the previous line.
 +------------------------+-----------------------------+-----------------------------------+ 
 
@@ -88,7 +88,7 @@ Usage Examples
 "goto line 10" - Move to the start of line 10.
 "goto line end" - Move to the end of the current line.
 "goto start" - Move to the start of the document.
-"goto next" - Move to the start of the next word.
+"goto next" - Move to the end of the next word.
 "goto 5" - Move to the start of the 5th word on the current line.
 
 ============================================================================================
