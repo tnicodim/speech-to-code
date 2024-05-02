@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+let lastGoToCommand = 'word';
+
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
   const words: string[] = text.match(/\b\w+\b/g) || [];
@@ -74,20 +76,26 @@ export function goToCommand(transcription: string[]) {
 
     if (editor) {
       // Handle different cases for navigation
-      const command = transcription.join(' ').toLowerCase();
-
+      let command = transcription.join(' ').toLowerCase();
+      if (command === 'goto next' || command === 'goto previous') {
+        command += lastGoToCommand;
+      }
       switch (command) {
+        
         case 'goto next line':
           goToNextLine(editor);
+          lastGoToCommand = ' line';
           break;
 
         case 'goto previous line':
           goToPreviousLine(editor);
+          lastGoToCommand = ' line';
           break;
 
         case /^goto line \d+$/.test(command) ? command : undefined:
           const lineNumber = parseInt(command.split(' ').pop() || '0', 10);
           goToLine(editor, lineNumber);
+         // lastGoToCommand = ' line';
           break;
 
         case 'goto line end':
@@ -98,25 +106,28 @@ export function goToCommand(transcription: string[]) {
           goToLineStart(editor);
           break;
 
-        case 'goto end':
+        case 'goto document end':
           goToDocumentEnd(editor);
           break;
 
-        case 'goto start':
+        case 'goto document start':
           goToDocumentStart(editor);
           break;
 
-        case 'goto next':
+        case 'goto next word':
           goToNextWord(editor);
+          lastGoToCommand = ' word';
           break;
 
-        case /^goto \d+$/.test(command) ? command : undefined:
-          const wordNumber = parseInt(command.split(' ').pop() || '0', 10);
-          goToWord(editor, wordNumber);
+        case /^goto \w+$/.test(command) ? command : undefined:
+          const targetWord = command.split(' ')[1];
+          goToWord(editor, targetWord);
+          lastGoToCommand = ' word';
           break;
 
-        case 'goto previous':
+        case 'goto previous word':
           goToPreviousWord(editor);
+          lastGoToCommand = ' word';
           break;
 
         default:
@@ -131,7 +142,7 @@ export function goToCommand(transcription: string[]) {
   }
 }
 
-export function otherCommand(transcription: string[]) { 
+export function otherCommand(transcription: string[]) {
   try {
     // Get the active text editor
     const editor = vscode.window.activeTextEditor;
@@ -200,7 +211,7 @@ function goToNextLine(editor: vscode.TextEditor) {
 function goToPreviousLine(editor: vscode.TextEditor) {
   const currentPosition = editor.selection.active;
   const previousLine = currentPosition.line - 1;
-  
+
   if (previousLine >= 0) { // Ensure we don't go above the first line
     const newPosition = new vscode.Position(previousLine, 0);
     const newSelection = new vscode.Selection(newPosition, newPosition);
@@ -256,24 +267,30 @@ function goToNextWord(editor: vscode.TextEditor) {
   }
 }
 
-function goToWord(editor: vscode.TextEditor, wordNumber: number) {
+function goToWord(editor: vscode.TextEditor, targetWord: string) {
   const currentPosition = editor.selection.active;
   const currentLine = editor.document.lineAt(currentPosition.line);
+  const currentLineText = currentLine.text;
+  const remainingText = currentLineText.substring(currentPosition.character);
 
-  // Updated regex to exclude parentheses and other characters
-  const wordRegex = /\b\w+(?=\b|$)\b/g;
+  const wordRegex = new RegExp(`(?:^|[^\\w])${targetWord}(?:$|[^\\w])`);  // This matches the exact word
   let match;
-  const words = [];
-  while ((match = wordRegex.exec(currentLine.text)) !== null) {
-    words.push({ word: match[0], index: match.index });
-  }
+  let found = false;
 
-  if (wordNumber > 0 && wordNumber <= words.length) {
-    const targetWord = words[wordNumber - 1];
-    const targetWordStart = currentLine.range.start.character + targetWord.index;
-    const newPosition = new vscode.Position(currentPosition.line, targetWordStart);
+  while ((match = wordRegex.exec(remainingText)) !== null) {
+    let wordEndPosition = currentLine.text.length - remainingText.length + match.index + targetWord.length;
+     if (currentLine.text[wordEndPosition] == targetWord[targetWord.length - 1]){
+       wordEndPosition++;
+     }
+    const newPosition = new vscode.Position(currentPosition.line, wordEndPosition);
     const newSelection = new vscode.Selection(newPosition, newPosition);
     editor.selection = newSelection;
+    found = true;
+    break;  // Break after the first match
+  }
+
+  if (!found) {
+    console.log(`Word '${targetWord}' not found on the current line.`);
   }
 }
 

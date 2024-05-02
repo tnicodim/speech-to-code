@@ -30,7 +30,7 @@ function startRecording() {
       transcriptions.push(correctedTranscription);
       processTranscription(tokenize(correctedTranscription));
       process.stdout.write('Transcription: ' + transcription + '\n');
-      process.stdout.write('Corrected Transcription: ' + correctedTranscription + '\n');
+      process.stdout.write('Corrected Transcription: ' + tokenize(correctedTranscription) + '\n');
       //process.stdout.write('Transcription History: ' + transcriptions + '\n');
     });
 

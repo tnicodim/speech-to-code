@@ -59,36 +59,44 @@ Command: "goto line start"
 Description: Move the cursor to the start of the current line.
 +------------------------+-----------------------------+-----------------------------------+
 5. Go to Document End
-Command: "goto end"
+Command: "goto document end"
 Description: Move the cursor to the end of the document.
 +------------------------+-----------------------------+-----------------------------------+
 6. Go to Document Start
-Command: "goto start"
+Command: "goto document start"
 Description: Move the cursor to the start of the document.
 +------------------------+-----------------------------+-----------------------------------+
 7. Go to Next Word
-Command: "goto next"
+Command: "goto next word"
 Description: Move the cursor to the end of the next word.
 +------------------------+-----------------------------+-----------------------------------+
 8. Go to Specific Word
-Command: "goto [wordNumber]"
-Description: Move the cursor to the start of the specified word on the current line.
+Command: "goto [word]"
+Description: Move the cursor to the end of the specified word on the current line.
 +------------------------+-----------------------------+-----------------------------------+
 9. Go to Previous Word
-Command: "goto previous"
+Command: "goto previous word"
 Description: Move the cursor to the start of the previous word.
 +------------------------+-----------------------------+-----------------------------------+
 10. Go to Previous Line
 Command: "goto previous line"
 Description: Move the cursor to the start of the previous line.
-+------------------------+-----------------------------+-----------------------------------+ 
++------------------------+-----------------------------+-----------------------------------+
+11. Go to Next
+Command: "goto next"
+Description: Executes the goto next command for your previously spoken goto command (goto next word by default).
++------------------------+-----------------------------+-----------------------------------+
+12. Go to Previous
+Command: "goto previous"
+Description: Executes the goto previous command for your previously spoken goto command (goto previous word by default).
++------------------------+-----------------------------+-----------------------------------+
 
 Usage Examples
 "goto next line" - Move to the start of the next line.
 "goto line 10" - Move to the start of line 10.
 "goto line end" - Move to the end of the current line.
 "goto start" - Move to the start of the document.
-"goto next" - Move to the end of the next word.
+"goto next word" - Move to the end of the next word.
 "goto 5" - Move to the start of the 5th word on the current line.
 
 ============================================================================================
