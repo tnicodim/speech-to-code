@@ -52,6 +52,8 @@
   },
   "dependencies": {
     "@google-cloud/speech": "^6.1.0",
-    "node-record-lpcm16": "^1.0.1"
+    "dotenv": "^16.4.5",
+    "node-record-lpcm16": "^1.0.1",
+    "openai": "^4.40.2"
   }
 }

@@ -4,7 +4,7 @@ let lastGoToCommand = 'word';
 
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
-  const words: string[] = text.match(/\b\w+\b/g) || [];
+  const words: string[] = text.match(/\b\d+\.\d+|\w+\b/g) || [];
 
   // Lowercase the words
   const lowercasedWords: string[] = words.map(word => word.toLowerCase());
@@ -41,31 +41,45 @@ export function compileCommand() {
 }
 
 export function defineCommand(transcription: string[]) {
-  //shift transcription to remove command
-  transcription.shift();
-  let row = 0;
-  let column = 2;
-  let text = transcription[0];
-  const editor = vscode.window.activeTextEditor;
+  try {
+    const editor = vscode.window.activeTextEditor;
 
-  if (editor) {
-    // Create a TextEdit instance to represent the change you want to make
-    const edit = new vscode.TextEdit(new vscode.Range(new vscode.Position(row, column), new vscode.Position(row, column)), text);
+    if (editor) {
+      let command = transcription.join(' ').toLowerCase();
+      switch (transcription[1]) {
+        case 'variable':
+          const varAssignmentRegex = /define\s+(variable\s+)?(\w+)\s+equals\s+(string\s+)?(.+)/i;
+          const match = command.match(varAssignmentRegex);
+          if (match) {
+            const variableName = match[2]; // The variable name
+            const isString = match[3];     // Check if 'string' was specified
+            const value = match[4];        // The value assigned to the variable
 
-    // Apply the edit to the document
-    const workspaceEdit = new vscode.WorkspaceEdit();
-    workspaceEdit.set(editor.document.uri, [edit]);
-
-    // Apply the changes
-    return vscode.workspace.applyEdit(workspaceEdit).then(() => {
-      // Move the cursor to the inserted text
-      const newPosition = new vscode.Position(row, column + text.length);
-      const newSelection = new vscode.Selection(newPosition, newPosition);
-      editor.selection = newSelection;
-    });
-  } else {
-    vscode.window.showErrorMessage('No active text editor found.');
-    return undefined;
+            // Determine if the value needs to be treated as a string literal
+            let formattedValue = isString ? `"${value.trim()}"` : value;
+            if (editor) {
+              editor.edit(editBuilder => {
+                editBuilder.insert(editor.selection.start, `${variableName} = ${formattedValue}\n`);
+              });
+            }
+          } else {
+            console.log("Error declaring variable");
+          }
+          break;
+        case 'function':
+          editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, 'def function():\n    pass\n');
+          });
+          break;
+        default:
+          vscode.window.showErrorMessage(`Unsupported define command: ${command}`);
+      }
+    } else {
+      vscode.window.showErrorMessage('No active text editor found.');
+    }
+  } catch (error) {
+    console.error('An error occurred:', error);
+    // Handle or log the error appropriately
   }
 }
 
@@ -81,7 +95,7 @@ export function goToCommand(transcription: string[]) {
         command += lastGoToCommand;
       }
       switch (command) {
-        
+
         case 'goto next line':
           goToNextLine(editor);
           lastGoToCommand = ' line';
@@ -95,7 +109,7 @@ export function goToCommand(transcription: string[]) {
         case /^goto line \d+$/.test(command) ? command : undefined:
           const lineNumber = parseInt(command.split(' ').pop() || '0', 10);
           goToLine(editor, lineNumber);
-         // lastGoToCommand = ' line';
+          // lastGoToCommand = ' line';
           break;
 
         case 'goto line end':
@@ -171,7 +185,8 @@ export function otherCommand(transcription: string[]) {
         case 'comment line':
           toggleLineComment(editor);
           break;
-
+        case '':
+          break;
         default:
           vscode.window.showErrorMessage(`Unsupported other command: ${command}`);
       }
@@ -180,7 +195,6 @@ export function otherCommand(transcription: string[]) {
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    // Handle or log the error appropriately
   }
 }
 
@@ -279,9 +293,9 @@ function goToWord(editor: vscode.TextEditor, targetWord: string) {
 
   while ((match = wordRegex.exec(remainingText)) !== null) {
     let wordEndPosition = currentLine.text.length - remainingText.length + match.index + targetWord.length;
-     if (currentLine.text[wordEndPosition] == targetWord[targetWord.length - 1]){
-       wordEndPosition++;
-     }
+    if (currentLine.text[wordEndPosition] == targetWord[targetWord.length - 1]) {
+      wordEndPosition++;
+    }
     const newPosition = new vscode.Position(currentPosition.line, wordEndPosition);
     const newSelection = new vscode.Selection(newPosition, newPosition);
     editor.selection = newSelection;
