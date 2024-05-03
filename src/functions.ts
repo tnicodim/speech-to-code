@@ -1,4 +1,9 @@
 import * as vscode from 'vscode';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 let lastGoToCommand = 'word';
 
@@ -23,7 +28,7 @@ export function tokenize(text: string): string[] {
   return lowercasedWords;
 }
 
-
+// reminder to add compiling support for other languages as well
 export function compileCommand() {
   const editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -40,47 +45,39 @@ export function compileCommand() {
   }
 }
 
-export function defineCommand(transcription: string[]) {
+export async function writeCommand(transcription: string[]) {
   try {
     const editor = vscode.window.activeTextEditor;
-
     if (editor) {
       let command = transcription.join(' ').toLowerCase();
-      switch (transcription[1]) {
-        case 'variable':
-          const varAssignmentRegex = /define\s+(variable\s+)?(\w+)\s+equals\s+(string\s+)?(.+)/i;
-          const match = command.match(varAssignmentRegex);
-          if (match) {
-            const variableName = match[2]; // The variable name
-            const isString = match[3];     // Check if 'string' was specified
-            const value = match[4];        // The value assigned to the variable
-
-            // Determine if the value needs to be treated as a string literal
-            let formattedValue = isString ? `"${value.trim()}"` : value;
-            if (editor) {
-              editor.edit(editBuilder => {
-                editBuilder.insert(editor.selection.start, `${variableName} = ${formattedValue}\n`);
-              });
-            }
-          } else {
-            console.log("Error declaring variable");
-          }
-          break;
-        case 'function':
-          editor.edit(editBuilder => {
-            editBuilder.insert(editor.selection.active, 'def function():\n    pass\n');
-          });
-          break;
-        default:
-          vscode.window.showErrorMessage(`Unsupported define command: ${command}`);
+      let languageId = editor.document.languageId;
+      let userPrompt = '';
+      let systemPrompt = '';
+      if (transcription[0] === 'using') {
+        //use context (not finished yet)
+        systemPrompt = `You need to write strictly just ${languageId} code based on 
+        the user's request and nothing else, no other text before or after the code, just the code snippet. `;
+        userPrompt = `'${command}'`;
       }
+      else {
+        // no context
+        systemPrompt = `You need to write strictly just ${languageId} code based on 
+        the user's request and nothing else, no other text before or after the code, just the code snippet. `;
+        userPrompt = `'${command}'`;
+      }
+      const chatCompletion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ "role": "system", "content": `${systemPrompt}` }, { "role": "user", "content": `${userPrompt}` }],
+      });
+      console.log(chatCompletion.choices[0].message);
+
     } else {
       vscode.window.showErrorMessage('No active text editor found.');
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    // Handle or log the error appropriately
   }
+
 }
 
 export function goToCommand(transcription: string[]) {
@@ -185,8 +182,10 @@ export function otherCommand(transcription: string[]) {
         case 'comment line':
           toggleLineComment(editor);
           break;
+
         case '':
           break;
+
         default:
           vscode.window.showErrorMessage(`Unsupported other command: ${command}`);
       }

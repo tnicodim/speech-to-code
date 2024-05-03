@@ -1,16 +1,12 @@
 import * as vscode from 'vscode';
 import { processTranscription } from './transcriptionHandler';
 import { sampleRateHertz, request, wordCorrections } from './variables';
-import { tokenize, defineCommand } from './functions';
+import { tokenize } from './functions';
 const { exec } = require('child_process');
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
-import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
@@ -65,25 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
   // processTranscription(['compile']);
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code-python.helloWorld', async () => {
-      // const chatCompletion = await openai.chat.completions.create({
-      //   model: "gpt-3.5-turbo",
-      //   messages: [{"role": "user", "content": "Hello!"}],
-      // });
-      // console.log(chatCompletion.choices[0].message);
-      let editor = vscode.window.activeTextEditor;
-        
-      if (editor) {
-          // Get the document associated with the editor
-          let document = editor.document;
-          
-          // Get the language ID from the document
-          let languageId = document.languageId;
-          
-          // Display the detected language
-          vscode.window.showInformationMessage(`The detected language is: ${languageId}`);
-      } else {
-          vscode.window.showInformationMessage('No active editor!');
-      }
+
     })
   );
 

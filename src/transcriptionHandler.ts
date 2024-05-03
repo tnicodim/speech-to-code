@@ -15,14 +15,14 @@ export function processTranscription(transcription: string[]) {
         fs.compileCommand();
         return;
 
-      case 'define':
-        fs.defineCommand(transcription);
-        return;
-
       case 'goto':
         fs.goToCommand(transcription);
         return;
 
+      case 'write' || 'using':
+        fs.writeCommand(transcription);
+        return;
+        
       default:
         fs.otherCommand(transcription);
         // console.log('Unknown command: ', transcription[0]);
