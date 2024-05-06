@@ -6,6 +6,8 @@ const openai = new OpenAI({
 });
 
 let lastGoToCommand = 'word';
+let selectionStart: vscode.Position;
+let selectionEnd: vscode.Position;
 
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
@@ -14,7 +16,7 @@ export function tokenize(text: string): string[] {
   // Lowercase the words
   const lowercasedWords: string[] = words.map(word => word.toLowerCase());
 
-  // Combine 'go' and 'to' into 'goto'
+  // handle special cases
   for (let i = 0; i < lowercasedWords.length - 1; i++) {
     const currentWord = lowercasedWords[i];
     const nextWord = lowercasedWords[i + 1];
@@ -22,9 +24,10 @@ export function tokenize(text: string): string[] {
     if (currentWord === 'go' && nextWord === 'to') {
       lowercasedWords[i] = 'goto';  // Replace 'go' with 'goto'
       lowercasedWords.splice(i + 1, 1);  // Remove 'to'
+    } else if (currentWord === 'and' && nextWord === 'selection') {
+      lowercasedWords[i] = 'end';  // Replace 'and' with 'end'
     }
   }
-
   return lowercasedWords;
 }
 
@@ -51,33 +54,52 @@ export async function writeCommand(transcription: string[]) {
     if (editor) {
       let command = transcription.join(' ').toLowerCase();
       let languageId = editor.document.languageId;
-      let userPrompt = '';
-      let systemPrompt = '';
+      let userPrompt = `${command}`;
+      const systemPrompt = `Generate a code snippet strictly in ${languageId}. 
+The response must directly address the user's request, without any additional text or explanation. Please ensure the following:
+- The code handles the specified task efficiently.
+- Wrap the entire code snippet in triple backticks, regardless of its length or content type, including single-line comments or code.
+- Do not include any extraneous content or preamble outside the backticks.
+This will be used to insert directly into a programming environment, so precision and adherence to syntax are crucial.`;
+      // let systemPrompt = `You need to write strictly just ${languageId} code based on 
+      // the user's request and nothing else, no other text before or after the code, 
+      // just type out the code snippet. Make sure the code is always
+      // wrapped in triple backticks even if it's 1 line of code or a comment.`
+
       if (transcription[0] === 'using') {
-        //use context (not finished yet)
-        systemPrompt = `You need to write strictly just ${languageId} code based on 
-        the user's request and nothing else, no other text before or after the code, just the code snippet. `;
-        userPrompt = `'${command}'`;
+        //use context
+        const context = await getClipboardContent();
+        userPrompt += `My code for context: \n ${context}`;
       }
-      else {
-        // no context
-        systemPrompt = `You need to write strictly just ${languageId} code based on 
-        the user's request and nothing else, no other text before or after the code, just the code snippet. `;
-        userPrompt = `'${command}'`;
-      }
+
       const chatCompletion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [{ "role": "system", "content": `${systemPrompt}` }, { "role": "user", "content": `${userPrompt}` }],
       });
-      console.log(chatCompletion.choices[0].message);
+      if (chatCompletion.choices && chatCompletion.choices.length > 0 && chatCompletion.choices[0].message) {
+        // Regex to capture text between triple backticks ignoring the first line after the first set of backticks
+        const regex = /```(?:[^\n]+\n)?([\s\S]*?)```/;
+        const response = chatCompletion.choices[0].message?.content || '';
+        const matches = regex.exec(response);
+        if (matches && matches[1]) {  // Check if there is a captured group
+          const codeToInsert = matches[1].trim();  // Trim to remove any extra whitespace
 
+          // Replace the currently selected text
+          editor.edit(editBuilder => {
+            editBuilder.replace(editor.selection, codeToInsert);
+          });
+        } else {
+          vscode.window.showErrorMessage('No code block found within the response.');
+        }
+      } else {
+        vscode.window.showErrorMessage('No response message from OpenAI chat completion.');
+      }
     } else {
       vscode.window.showErrorMessage('No active text editor found.');
     }
   } catch (error) {
     console.error('An error occurred:', error);
   }
-
 }
 
 export function goToCommand(transcription: string[]) {
@@ -157,12 +179,15 @@ export function otherCommand(transcription: string[]) {
   try {
     // Get the active text editor
     const editor = vscode.window.activeTextEditor;
-
     if (editor) {
       // Handle different cases for navigation
       const command = transcription.join(' ').toLowerCase();
 
       switch (command) {
+        case 'copy':
+          copyTextToClipboard(editor);
+          break;
+
         case 'undo':
           undo(editor);
           break;
@@ -183,6 +208,18 @@ export function otherCommand(transcription: string[]) {
           toggleLineComment(editor);
           break;
 
+        case 'start selection':
+          startSelection(editor);
+          break;
+
+        case 'end selection':
+          endSelection(editor);
+          break;
+
+        case 'delete':
+          deleteSelection(editor);
+          break;
+
         case '':
           break;
 
@@ -195,6 +232,33 @@ export function otherCommand(transcription: string[]) {
   } catch (error) {
     console.error('An error occurred:', error);
   }
+}
+
+function startSelection(editor: vscode.TextEditor) {
+  if (editor) {
+    const currentPosition = editor.selection.active;
+    selectionStart = currentPosition;
+    const userFeedbackSelection = new vscode.Selection(selectionStart, selectionStart.translate(0, 1));
+    editor.selection = userFeedbackSelection;
+  } else {
+    console.error('No active editor');
+  }
+}
+
+function endSelection(editor: vscode.TextEditor) {
+  if (editor) {
+    const currentPosition = editor.selection.active;
+    selectionEnd = currentPosition;
+    if (selectionStart && selectionEnd) {
+      const newSelection = new vscode.Selection(selectionStart, selectionEnd);
+      editor.selection = newSelection;
+    } else {
+      vscode.window.showErrorMessage('No start position found');
+    }
+  } else {
+    console.error('No active editor');
+  }
+
 }
 
 function goToLineEnd(editor: vscode.TextEditor) {
@@ -240,7 +304,9 @@ function goToLine(editor: vscode.TextEditor, lineNumber: number) {
 
 function goToDocumentEnd(editor: vscode.TextEditor) {
   const lastLine = editor.document.lineCount - 1;
-  const newPosition = new vscode.Position(lastLine, 0);
+  const line = editor.document.lineAt(lastLine);
+  const lastCharPosition = line.text.length;
+  const newPosition = new vscode.Position(lastLine, lastCharPosition);
   const newSelection = new vscode.Selection(newPosition, newPosition);
   editor.selection = newSelection;
 }
@@ -351,6 +417,8 @@ function redo(editor: vscode.TextEditor) {
 function paste(editor: vscode.TextEditor) {
   if (editor) {
     vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+  } else {
+    vscode.window.showErrorMessage('No active editor available.');
   }
 }
 
@@ -363,5 +431,33 @@ function formatDocument(editor: vscode.TextEditor) {
 function toggleLineComment(editor: vscode.TextEditor) {
   if (editor) {
     vscode.commands.executeCommand('editor.action.commentLine');
+  }
+}
+
+async function copyTextToClipboard(editor: vscode.TextEditor) {
+  if (editor) {
+    vscode.commands.executeCommand('editor.action.clipboardCopyAction');
+  } else {
+    vscode.window.showErrorMessage('No active editor available.');
+  }
+}
+
+async function getClipboardContent() {
+  try {
+    const clipboardText = await vscode.env.clipboard.readText();
+    return clipboardText;
+  } catch (error) {
+    console.error('Failed to read clipboard content:', error);
+  }
+}
+
+function deleteSelection(editor: vscode.TextEditor) {
+  if (editor) {
+    const selection = editor.selection; // Get the current selection
+    editor.edit(editBuilder => {
+      editBuilder.delete(selection); // Delete the selected text
+    });
+  } else {
+    vscode.window.showErrorMessage('No active text editor found.');
   }
 }

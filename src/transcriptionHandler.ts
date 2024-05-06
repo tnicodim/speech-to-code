@@ -19,10 +19,11 @@ export function processTranscription(transcription: string[]) {
         fs.goToCommand(transcription);
         return;
 
-      case 'write' || 'using':
+      case 'write':
+      case 'using':
         fs.writeCommand(transcription);
         return;
-        
+
       default:
         fs.otherCommand(transcription);
         // console.log('Unknown command: ', transcription[0]);

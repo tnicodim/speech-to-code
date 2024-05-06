@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { processTranscription } from './transcriptionHandler';
 import { sampleRateHertz, request, wordCorrections } from './variables';
 import { tokenize } from './functions';
-const { exec } = require('child_process');
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
@@ -58,9 +57,8 @@ export function stopRecording() {
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "speech-to-code-python" is now active!');
-  // processTranscription(['compile']);
   context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code-python.helloWorld', async () => {
+    vscode.commands.registerCommand('speech-to-code-python.helloWorld', () => {
 
     })
   );
