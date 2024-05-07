@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
 import { myStatusBarItem } from './extension';
-import { defaultTimeout } from './variables';
+import { defaultTimeout, wordCorrections } from './variables';
+import { window } from 'vscode';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -14,25 +15,46 @@ export function tokenize(text: string): string[] {
   // Match words using a regular expression
   const words: string[] = text.match(/\b\d+\.\d+|\w+\b/g) || [];
 
-  // Lowercase the words
-  const lowercasedWords: string[] = words.map(word => word.toLowerCase());
+  const correctedWords: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    let word = words[i].toLowerCase();  // Convert to lowercase for matching
+    word = wordCorrections[word] !== undefined ? wordCorrections[word] : words[i];  // Apply corrections
+    correctedWords.push(word);
+  }
 
   // handle special cases
-  for (let i = 0; i < lowercasedWords.length - 1; i++) {
-    const currentWord = lowercasedWords[i];
-    const nextWord = lowercasedWords[i + 1];
+  for (let i = 0; i < correctedWords.length - 1; i++) {
+    const currentWord = correctedWords[i];
+    const nextWord = correctedWords[i + 1];
+    const previousWord = correctedWords[i - 1];
 
     if (currentWord === 'go' && nextWord === 'to') {
-      lowercasedWords[i] = 'goto';  // Replace 'go' with 'goto'
-      lowercasedWords.splice(i + 1, 1);  // Remove 'to'
-    } else if (currentWord === 'and' && nextWord === 'selection') {
-      lowercasedWords[i] = 'end';  // Replace 'and' with 'end'
+      correctedWords[i] = 'goto';  // Replace 'go' with 'goto'
+      correctedWords.splice(i + 1, 1);  // Remove 'to'
+    } else if (currentWord === 'and' && (nextWord === 'selection' || previousWord === 'document')) {
+      correctedWords[i] = 'end';  // Replace 'and' with 'end'
     }
   }
-  return lowercasedWords;
+  return correctedWords.filter(item => item !== '');;
 }
 
 // reminder to add compiling support for other languages as well
+// export function compileCommand() {
+//   const editor = vscode.window.activeTextEditor;
+//   if (editor) {
+//     const filePath = editor.document.uri.fsPath;
+//     if (filePath.endsWith('.py')) {
+//       const terminal = vscode.window.createTerminal('Python Terminal');
+//       terminal.sendText(`python "${filePath}"`);
+//       terminal.show();
+//     } else {
+//       vscode.window.showErrorMessage('The file is not a Python file (.py)');
+//     }
+//   } else {
+//     vscode.window.showErrorMessage('No active editor');
+//   }
+// }
+
 export function compileCommand() {
   const editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -49,6 +71,9 @@ export function compileCommand() {
   }
 }
 
+
+
+
 export async function writeCommand(transcription: string[]) {
   try {
     const editor = vscode.window.activeTextEditor;
@@ -56,16 +81,16 @@ export async function writeCommand(transcription: string[]) {
       let command = transcription.join(' ').toLowerCase();
       let languageId = editor.document.languageId;
       let userPrompt = `${command}`;
-      const systemPrompt = `Generate a code snippet strictly in ${languageId}. 
-The response must directly address the user's request, without any additional text or explanation. Please ensure the following:
-- The code handles the specified task efficiently.
-- Wrap the entire code snippet in triple backticks, regardless of its length or content type, including single-line comments or code.
-- Do not include any extraneous content or preamble outside the backticks.
-This will be used to insert directly into a programming environment, so precision and adherence to syntax are crucial.`;
-      // let systemPrompt = `You need to write strictly just ${languageId} code based on 
-      // the user's request and nothing else, no other text before or after the code, 
-      // just type out the code snippet. Make sure the code is always
-      // wrapped in triple backticks even if it's 1 line of code or a comment.`
+      //       const systemPrompt = `Generate a code snippet strictly in ${languageId}. 
+      // The response must directly address the user's request, without any additional text or explanation. Please ensure the following:
+      // - The code handles the specified task efficiently.
+      // - Wrap the entire code snippet in triple backticks, regardless of its length or content type, including single-line comments or code.
+      // - Do not include any extraneous content or preamble outside the backticks.
+      // This will be used to insert directly into a programming environment, so precision and adherence to syntax are crucial.`;
+      let systemPrompt = `You need to write strictly just ${languageId} code based on 
+      the user's request and nothing else, no other text before or after the code, 
+      just type out the code snippet. Make sure the code is always
+      wrapped in triple backticks even if it's 1 line of code or a comment.`
 
       if (transcription[0] === 'using') {
         //use context
@@ -197,52 +222,62 @@ export function otherCommand(transcription: string[]) {
           copyTextToClipboard(editor);
           updateStatusBar("Copied to clipboard", 1000);
           break;
-    
+
         case 'undo':
           undo(editor);
           updateStatusBar("Undid last action", 1000);
           break;
-    
+
         case 'redo':
           redo(editor);
           updateStatusBar("Redid last action", 1000);
           break;
-    
+
         case 'paste':
           paste(editor);
           updateStatusBar("Pasted from clipboard", 1000);
           break;
-    
+
         case 'format document':
           formatDocument(editor);
           updateStatusBar("Formatted the document", 1000);
           break;
-    
+
         case 'comment line':
           toggleLineComment(editor);
           updateStatusBar("Toggled line comment", 1000);
           break;
-    
+
         case 'start selection':
           startSelection(editor);
           updateStatusBar("Started text selection", 1000);
           break;
-    
+
         case 'end selection':
           endSelection(editor);
           updateStatusBar("Ended text selection", 1000);
           break;
-    
+
         case 'delete':
           deleteSelection(editor);
           updateStatusBar("Deleted selection", 1000);
           break;
-    
+
         case 'new line':
           newline(editor);
           updateStatusBar("Inserted a new line", 1000);
           break;
-    
+          
+        case 'cut':
+          vscode.commands.executeCommand('editor.action.clipboardCutAction');
+          updateStatusBar("Cut the selection", 1000);
+          break;
+
+        case 'select all':
+          vscode.commands.executeCommand('editor.action.selectAll');
+          updateStatusBar("Selected all text", 1000);
+          break;
+
         case '':
           // Intentionally empty to handle no input gracefully
           break;
@@ -400,7 +435,7 @@ function goToWord(editor: vscode.TextEditor, targetWord: string) {
   }
 
   if (!found) {
-    console.log(`Word '${targetWord}' not found on the current line.`);
+    vscode.window.showErrorMessage(`Word '${targetWord}' not found on the current line.`);
   }
 }
 
@@ -496,8 +531,49 @@ function deleteSelection(editor: vscode.TextEditor) {
 export function updateStatusBar(message: string, timeout?: number, timeoutMessage?: string) {
   myStatusBarItem.text = message;
   if (timeout) {
-      setTimeout(() => {
-        myStatusBarItem.text = timeoutMessage || `$(mic-filled) Waiting for a new command...`;
-      }, timeout);
+    setTimeout(() => {
+      myStatusBarItem.text = timeoutMessage || `$(mic-filled) Waiting for a new command...`;
+    }, timeout);
   }
 }
+
+// export const showMessageWithTimeout = (message: string, timeout = 3000): void => {
+//   void window.withProgress(
+//     {
+//       location: vscode.ProgressLocation.Notification,
+//       title: message,
+//       cancellable: false,
+//     },
+
+//     async (progress): Promise<void> => {
+//       await waitFor(timeout, () => { return false; });
+//       progress.report({ increment: 100 });
+//     },
+//       },
+//   );
+// };
+
+// export const waitFor = async (timeout: number, condition: () => boolean): Promise<boolean> => {
+//   while (!condition() && timeout > 0) {
+//       timeout -= 100;
+//       await sleep(100);
+//   }
+
+//   return timeout > 0 ? true : false;
+// };
+
+
+// go to word popup feedback (done)
+// select all (done)
+// fix timeout issue (done)
+// cut (done)
+
+// compile support
+// better prompt
+// *
+// using context replace this console log with the
+// instead of fizzbuzz make it hello my name is
+
+
+// and == end (done)
+// uh == '' (done)

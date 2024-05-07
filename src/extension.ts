@@ -6,7 +6,9 @@ const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
 
-let transcriptions: any[] = [];
+let recordingTimer: NodeJS.Timeout | null = null;
+
+// let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
 export let myStatusBarItem: vscode.StatusBarItem;
@@ -20,16 +22,15 @@ function startRecording() {
       const transcription = data.results[0] && data.results[0].alternatives[0]
         ? data.results[0].alternatives[0].transcript
         : '\n\nReached transcription time limit\n';
-      let correctedTranscription = transcription
-        .split(' ')
-        .map((word: string) => wordCorrections[word.toLowerCase()] || word)
-        .join(' ');
-
-      transcriptions.push(correctedTranscription);
-      processTranscription(tokenize(correctedTranscription));
-      process.stdout.write('Transcription: ' + transcription + '\n');
-      process.stdout.write('Corrected Transcription: ' + tokenize(correctedTranscription) + '\n');
-      //process.stdout.write('Transcription History: ' + transcriptions + '\n');
+      // let correctedTranscription = transcription
+      //   .split(' ')
+      //   .map((word: string) => wordCorrections[word.toLowerCase()] || word)
+      //   .join(' ');
+      if(transcription !== ''){
+        processTranscription(tokenize(transcription));
+        process.stdout.write('Transcription: ' + transcription + '\n');
+        process.stdout.write('Corrected Transcription: ' + tokenize(transcription) + '\n');
+      }
     });
 
   recording = recorder.record({
@@ -37,11 +38,23 @@ function startRecording() {
     threshold: 0,
     verbose: false,
     recordProgram: 'sox',
-    silence: '10',
+    silence: '1.0',
   });
 
   recording.stream().on('recorder threw an error:', console.error).pipe(recognizeStream);
-  console.log('Recording started');
+
+  // Clear existing timer if it's set
+  if (recordingTimer) {
+    clearTimeout(recordingTimer);
+  }
+   // Set a timer to stop and restart recording every 300 seconds
+   recordingTimer = setTimeout(() => {
+    console.log('Restarting recording...');
+    stopRecording();
+    startRecording();
+  }, 300000); // 300 seconds = 300000 milliseconds
+
+
   vscode.window.showInformationMessage('Recording Started!');
 }
 
@@ -52,13 +65,16 @@ function stopRecording() {
   if (recognizeStream) {
     recognizeStream.destroy();
   }
-  console.log('Recording stopped');
+  if (recordingTimer) {
+    clearTimeout(recordingTimer);
+    recordingTimer = null;
+  }
   vscode.window.showInformationMessage('Recording Stopped!');
 }
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "speech-to-code" is now active!');
-  myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left , 1);
+  myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
   myStatusBarItem.show();
   updateStatusBar(`$(mic) Waiting for recording to start`);
   myStatusBarItem.command = 'speech-to-code.startRecord';

@@ -13,7 +13,8 @@ export const request = {
       'paste' ,'comment line', 'go to previous', 'go to previous word', 
       'go to previous line', 'go to two', 'go to line', 'go to next', 
       'go to next word', 'go to end', 'function sum', 'compile', 'sum', 
-      'with context', 'go to sum']
+      'with context', 'go to sum', 'go to line end', 'go to line start', 
+      'go to document end', 'go to document start', 'cut', 'select all']
     }],
   },
   interimResults: false,
@@ -32,7 +33,9 @@ export const wordCorrections: Record<string, string> = {
     'zero': '0',
     'compiled': 'compile',
     'right': 'write',
-    'uh': ''
+    'uh': '',
+    'um': '',
+    'ah': ''
   };
 
  
