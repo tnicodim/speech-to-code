@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { processTranscription } from './transcriptionHandler';
 import { sampleRateHertz, request, wordCorrections } from './variables';
-import { tokenize } from './functions';
+import { tokenize, updateStatusBar } from './functions';
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
@@ -45,7 +45,7 @@ function startRecording() {
   vscode.window.showInformationMessage('Recording Started!');
 }
 
-export function stopRecording() {
+function stopRecording() {
   if (recording) {
     recording.stop();
   }
@@ -60,21 +60,32 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "speech-to-code" is now active!');
   myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left , 1);
   myStatusBarItem.show();
+  updateStatusBar(`$(mic) Waiting for recording to start`);
+  myStatusBarItem.command = 'speech-to-code.startRecord';
+  myStatusBarItem.tooltip = "Click to start voice recording";
   context.subscriptions.push(myStatusBarItem);
-  context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
-    })
-  );
+
+
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
+  //   })
+  // );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code.startRecord', () => {
       startRecording();
+      updateStatusBar(`$(mic-filled) Recording in progress`, 800);
+      myStatusBarItem.command = 'speech-to-code.stopRecord';
+      myStatusBarItem.tooltip = "Click to stop voice recording";
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code.stopRecord', () => {
       stopRecording();
+      updateStatusBar(`$(mic) Recording stopped`, 2000, `$(mic) Waiting for recording to start`);
+      myStatusBarItem.command = 'speech-to-code.startRecord';
+      myStatusBarItem.tooltip = "Click to start voice recording";
     })
   );
 }

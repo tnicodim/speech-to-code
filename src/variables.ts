@@ -1,3 +1,4 @@
+export const defaultTimeout = 1000;
 export const encoding = 'LINEAR16';
 export const sampleRateHertz = 16000;
 export const languageCode = 'en-US';

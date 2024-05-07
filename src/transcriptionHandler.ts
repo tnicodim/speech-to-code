@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from './functions';
-import { stopRecording } from './extension';
+import { defaultTimeout } from './variables';
 
 export function processTranscription(transcription: string[]) {
   process.stdout.write('parameter: ' + transcription + '\n');
@@ -8,11 +8,12 @@ export function processTranscription(transcription: string[]) {
   try {
     switch (transcription[0]) {
       case 'stop':
-        stopRecording();
+        vscode.commands.executeCommand('speech-to-code.stopRecord')
         return;
 
       case 'compile':
         fs.compileCommand();
+        fs.updateStatusBar('Compilation in progress', defaultTimeout);
         return;
 
       case 'goto':
@@ -23,6 +24,7 @@ export function processTranscription(transcription: string[]) {
       case 'write':
       case 'using':
         fs.writeCommand(transcription);
+        fs.updateStatusBar('Writing in progress', defaultTimeout);
         return;
 
       default:

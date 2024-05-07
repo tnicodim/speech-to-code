@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
 import { myStatusBarItem } from './extension';
-
+import { defaultTimeout } from './variables';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -9,7 +9,6 @@ const openai = new OpenAI({
 let lastGoToCommand = 'word';
 let selectionStart: vscode.Position;
 let selectionEnd: vscode.Position;
-
 
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
@@ -115,54 +114,62 @@ export function goToCommand(transcription: string[]) {
       if (command === 'goto next' || command === 'goto previous') {
         command += lastGoToCommand;
       }
-      switch (command) {
-
-        case 'goto next line':
+      switch (true) { // Use 'true' to use conditions in case statements
+        case command === 'goto next line':
           goToNextLine(editor);
           lastGoToCommand = ' line';
+          updateStatusBar("Moved to next line", 1000);
           break;
 
-        case 'goto previous line':
+        case command === 'goto previous line':
           goToPreviousLine(editor);
           lastGoToCommand = ' line';
+          updateStatusBar("Moved to previous line", 1000);
           break;
 
-        case /^goto line \d+$/.test(command) ? command : undefined:
+        case /^goto line \d+$/.test(command):
           const lineNumber = parseInt(command.split(' ').pop() || '0', 10);
           goToLine(editor, lineNumber);
-          // lastGoToCommand = ' line';
+          updateStatusBar(`Moved to line ${lineNumber}`, 1000);
           break;
 
-        case 'goto line end':
+        case command === 'goto line end':
           goToLineEnd(editor);
+          updateStatusBar("Moved to line end", 1000);
           break;
 
-        case 'goto line start':
+        case command === 'goto line start':
           goToLineStart(editor);
+          updateStatusBar("Moved to line start", 1000);
           break;
 
-        case 'goto document end':
+        case command === 'goto document end':
           goToDocumentEnd(editor);
+          updateStatusBar("Moved to document end", 1000);
           break;
 
-        case 'goto document start':
+        case command === 'goto document start':
           goToDocumentStart(editor);
+          updateStatusBar("Moved to document start", 1000);
           break;
 
-        case 'goto next word':
+        case command === 'goto next word':
           goToNextWord(editor);
           lastGoToCommand = ' word';
+          updateStatusBar("Moved to next word", 1000);
           break;
 
-        case /^goto \w+$/.test(command) ? command : undefined:
+        case /^goto \w+$/.test(command):
           const targetWord = command.split(' ')[1];
           goToWord(editor, targetWord);
           lastGoToCommand = ' word';
+          updateStatusBar(`Moved to word '${targetWord}'`, 1000);
           break;
 
-        case 'goto previous word':
+        case command === 'goto previous word':
           goToPreviousWord(editor);
           lastGoToCommand = ' word';
+          updateStatusBar("Moved to previous word", 1000);
           break;
 
         default:
@@ -188,44 +195,56 @@ export function otherCommand(transcription: string[]) {
       switch (command) {
         case 'copy':
           copyTextToClipboard(editor);
+          updateStatusBar("Copied to clipboard", 1000);
           break;
-
+    
         case 'undo':
           undo(editor);
+          updateStatusBar("Undid last action", 1000);
           break;
-
+    
         case 'redo':
           redo(editor);
+          updateStatusBar("Redid last action", 1000);
           break;
-
+    
         case 'paste':
           paste(editor);
+          updateStatusBar("Pasted from clipboard", 1000);
           break;
-
+    
         case 'format document':
           formatDocument(editor);
+          updateStatusBar("Formatted the document", 1000);
           break;
-
+    
         case 'comment line':
           toggleLineComment(editor);
+          updateStatusBar("Toggled line comment", 1000);
           break;
-
+    
         case 'start selection':
           startSelection(editor);
+          updateStatusBar("Started text selection", 1000);
           break;
-
+    
         case 'end selection':
           endSelection(editor);
+          updateStatusBar("Ended text selection", 1000);
           break;
-
+    
         case 'delete':
           deleteSelection(editor);
+          updateStatusBar("Deleted selection", 1000);
           break;
-
+    
         case 'new line':
           newline(editor);
-        break;
+          updateStatusBar("Inserted a new line", 1000);
+          break;
+    
         case '':
+          // Intentionally empty to handle no input gracefully
           break;
 
         default:
@@ -474,11 +493,11 @@ function deleteSelection(editor: vscode.TextEditor) {
   }
 }
 
-function updateStatusBar(message: string, timeout?: number, timeoutMessage?: string) {
+export function updateStatusBar(message: string, timeout?: number, timeoutMessage?: string) {
   myStatusBarItem.text = message;
   if (timeout) {
       setTimeout(() => {
-        myStatusBarItem.text = timeoutMessage || `$(microphone) Waiting for a new command...`;
+        myStatusBarItem.text = timeoutMessage || `$(mic-filled) Waiting for a new command...`;
       }, timeout);
   }
 }
