@@ -1,7 +1,7 @@
 {
-  "name": "speech-to-code-python",
-  "displayName": "Speech-to-Code Python",
-  "description": "Code Python applications using your voice",
+  "name": "speech-to-code",
+  "displayName": "Speech-to-Code",
+  "description": "Code applications using your voice",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.84.0"
@@ -14,18 +14,18 @@
   "contributes": {
     "commands": [
       {
-        "command": "speech-to-code-python.helloWorld",
-        "category": "StC Python",
+        "command": "speech-to-code.helloWorld",
+        "category": "Speech to Code",
         "title": "Hello World"
       },
       {
-        "command": "speech-to-code-python.startRecord",
-        "category": "StC Python",
+        "command": "speech-to-code.startRecord",
+        "category": "Speech to Code",
         "title": "Start Voice Recording"
       },
       {
-        "command": "speech-to-code-python.stopRecord",
-        "category": "StC Python",
+        "command": "speech-to-code.stopRecord",
+        "category": "Speech to Code",
         "title": "Stop Voice Recording"
       }
     ]

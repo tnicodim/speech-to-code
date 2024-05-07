@@ -57,23 +57,23 @@ export function stopRecording() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "speech-to-code-python" is now active!');
+  console.log('Congratulations, your extension "speech-to-code" is now active!');
   myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left , 1);
   myStatusBarItem.show();
   context.subscriptions.push(myStatusBarItem);
   context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code-python.helloWorld', () => {
+    vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code-python.startRecord', () => {
+    vscode.commands.registerCommand('speech-to-code.startRecord', () => {
       startRecording();
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code-python.stopRecord', () => {
+    vscode.commands.registerCommand('speech-to-code.stopRecord', () => {
       stopRecording();
     })
   );
@@ -81,6 +81,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-  console.log('Extension "speech-to-code-python" deactivated!');
+  console.log('Extension "speech-to-code" deactivated!');
   myStatusBarItem.dispose();
 }
