@@ -19,6 +19,7 @@ export function processTranscription(transcription: string[]) {
         fs.goToCommand(transcription);
         return;
 
+      case 'without':
       case 'write':
       case 'using':
         fs.writeCommand(transcription);

@@ -9,6 +9,7 @@ const client = new speech.SpeechClient();
 let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
+export let myStatusBarItem: vscode.StatusBarItem;
 
 
 function startRecording() {
@@ -57,9 +58,11 @@ export function stopRecording() {
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "speech-to-code-python" is now active!');
+  myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left , 1);
+  myStatusBarItem.show();
+  context.subscriptions.push(myStatusBarItem);
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code-python.helloWorld', () => {
-
     })
   );
 
@@ -79,4 +82,5 @@ export function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {
   console.log('Extension "speech-to-code-python" deactivated!');
+  myStatusBarItem.dispose();
 }

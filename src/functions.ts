@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
+import { myStatusBarItem } from './extension';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,6 +9,7 @@ const openai = new OpenAI({
 let lastGoToCommand = 'word';
 let selectionStart: vscode.Position;
 let selectionEnd: vscode.Position;
+
 
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
@@ -220,6 +222,9 @@ export function otherCommand(transcription: string[]) {
           deleteSelection(editor);
           break;
 
+        case 'new line':
+          newline(editor);
+        break;
         case '':
           break;
 
@@ -232,6 +237,13 @@ export function otherCommand(transcription: string[]) {
   } catch (error) {
     console.error('An error occurred:', error);
   }
+}
+
+function newline(editor: vscode.TextEditor) {
+  const currentPosition = editor.selection.active;
+  editor.edit(editBuilder => {
+    editBuilder.insert(currentPosition, '\n'); // Insert a newline character at the cursor position
+  });
 }
 
 function startSelection(editor: vscode.TextEditor) {
@@ -459,5 +471,14 @@ function deleteSelection(editor: vscode.TextEditor) {
     });
   } else {
     vscode.window.showErrorMessage('No active text editor found.');
+  }
+}
+
+function updateStatusBar(message: string, timeout?: number, timeoutMessage?: string) {
+  myStatusBarItem.text = message;
+  if (timeout) {
+      setTimeout(() => {
+        myStatusBarItem.text = timeoutMessage || `$(microphone) Waiting for a new command...`;
+      }, timeout);
   }
 }

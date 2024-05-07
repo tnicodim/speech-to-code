@@ -7,7 +7,12 @@ export const request = {
     sampleRateHertz: sampleRateHertz,
     languageCode: languageCode,
     speechContexts: [{
-      phrases: ['delete', 'start selection', 'end selection','write','format document' ,'redo' ,'undo' ,'copy' , 'paste' ,'comment line', 'go to previous', 'go to previous word', 'go to previous line', 'go to two', 'go to line', 'go to next', 'go to next word', 'go to end', 'function sum', 'compile', 'sum', 'define', 'go to sum']
+      phrases: ['new line','without context','delete', 'start selection', 
+      'end selection','write','format document' ,'redo' ,'undo' ,'copy' , 
+      'paste' ,'comment line', 'go to previous', 'go to previous word', 
+      'go to previous line', 'go to two', 'go to line', 'go to next', 
+      'go to next word', 'go to end', 'function sum', 'compile', 'sum', 
+      'with context', 'go to sum']
     }],
   },
   interimResults: false,
@@ -28,3 +33,5 @@ export const wordCorrections: Record<string, string> = {
     'right': 'write',
     'uh': ''
   };
+
+ 
