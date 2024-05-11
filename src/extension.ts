@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { processTranscription } from './transcriptionHandler';
-import { sampleRateHertz, request, wordCorrections } from './variables';
-import { tokenize, updateStatusBar } from './functions';
+import { sampleRateHertz, request } from './variables';
+import { tokenize, updateStatusBar, showMessageWithTimeout } from './functions';
 const recorder = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
@@ -38,7 +38,7 @@ function startRecording() {
     threshold: 0,
     verbose: false,
     recordProgram: 'sox',
-    silence: '1.0',
+    silence: '3.0',
   });
 
   recording.stream().on('recorder threw an error:', console.error).pipe(recognizeStream);
@@ -55,7 +55,7 @@ function startRecording() {
   }, 300000); // 300 seconds = 300000 milliseconds
 
 
-  vscode.window.showInformationMessage('Recording Started!');
+  showMessageWithTimeout('Recording Started!');
 }
 
 function stopRecording() {
@@ -69,7 +69,7 @@ function stopRecording() {
     clearTimeout(recordingTimer);
     recordingTimer = null;
   }
-  vscode.window.showInformationMessage('Recording Stopped!');
+  showMessageWithTimeout('Recording Stopped!');
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -82,10 +82,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(myStatusBarItem);
 
 
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
-  //   })
-  // );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
+      showMessageWithTimeout("Hello World from SPC");
+    })
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code.startRecord', () => {

@@ -23,6 +23,8 @@ export function processTranscription(transcription: string[]) {
       case 'without':
       case 'write':
       case 'using':
+      case 'with':
+      case 'replace':
         fs.writeCommand(transcription);
         fs.updateStatusBar('Writing in progress', defaultTimeout);
         return;

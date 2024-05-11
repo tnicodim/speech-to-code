@@ -1,4 +1,5 @@
 export const defaultTimeout = 1000;
+export const defaultTimeoutPopup = 2500;
 export const encoding = 'LINEAR16';
 export const sampleRateHertz = 16000;
 export const languageCode = 'en-US';
@@ -14,7 +15,7 @@ export const request = {
       'go to previous line', 'go to two', 'go to line', 'go to next', 
       'go to next word', 'go to end', 'function sum', 'compile', 'sum', 
       'with context', 'go to sum', 'go to line end', 'go to line start', 
-      'go to document end', 'go to document start', 'cut', 'select all']
+      'go to document end', 'go to document start', 'cut', 'select all', 'go to line end']
     }],
   },
   interimResults: false,

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
 import { myStatusBarItem } from './extension';
-import { defaultTimeout, wordCorrections } from './variables';
+import { defaultTimeout, defaultTimeoutPopup, wordCorrections } from './variables';
 import { window } from 'vscode';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -48,10 +48,10 @@ export function tokenize(text: string): string[] {
 //       terminal.sendText(`python "${filePath}"`);
 //       terminal.show();
 //     } else {
-//       vscode.window.showErrorMessage('The file is not a Python file (.py)');
+//       showMessageWithTimeout('The file is not a Python file (.py)');
 //     }
 //   } else {
-//     vscode.window.showErrorMessage('No active editor');
+//     showMessageWithTimeout('No active editor');
 //   }
 // }
 
@@ -64,10 +64,10 @@ export function compileCommand() {
       terminal.sendText(`python "${filePath}"`);
       terminal.show();
     } else {
-      vscode.window.showErrorMessage('The file is not a Python file (.py)');
+      showMessageWithTimeout('The file is not a Python file (.py)');
     }
   } else {
-    vscode.window.showErrorMessage('No active editor');
+    showMessageWithTimeout('No active editor');
   }
 }
 
@@ -78,24 +78,14 @@ export async function writeCommand(transcription: string[]) {
   try {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-      let command = transcription.join(' ').toLowerCase();
+      let command = removeContextPhrases(transcription.join(' ').toLowerCase());
       let languageId = editor.document.languageId;
       let userPrompt = `${command}`;
-      //       const systemPrompt = `Generate a code snippet strictly in ${languageId}. 
-      // The response must directly address the user's request, without any additional text or explanation. Please ensure the following:
-      // - The code handles the specified task efficiently.
-      // - Wrap the entire code snippet in triple backticks, regardless of its length or content type, including single-line comments or code.
-      // - Do not include any extraneous content or preamble outside the backticks.
-      // This will be used to insert directly into a programming environment, so precision and adherence to syntax are crucial.`;
-      let systemPrompt = `You need to write strictly just ${languageId} code based on 
-      the user's request and nothing else, no other text before or after the code, 
-      just type out the code snippet. Make sure the code is always
-      wrapped in triple backticks even if it's 1 line of code or a comment.`
-
-      if (transcription[0] === 'using') {
+      let systemPrompt = `You need to write strictly just ${languageId} code based on the user's request and nothing else, no other text before or after the code, just type out the code snippet. Make sure the code is always wrapped in triple backticks even if it's 1 line of code or a comment.`
+      if (transcription[0] === 'using' || transcription[0] === 'with') {
         //use context
         const context = await getClipboardContent();
-        userPrompt += `My code for context: \n ${context}`;
+        userPrompt += `. My code for context: \n ${context}`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -115,17 +105,31 @@ export async function writeCommand(transcription: string[]) {
             editBuilder.replace(editor.selection, codeToInsert);
           });
         } else {
-          vscode.window.showErrorMessage('No code block found within the response.');
+          showMessageWithTimeout('No code block found within the response.');
         }
       } else {
-        vscode.window.showErrorMessage('No response message from OpenAI chat completion.');
+        showMessageWithTimeout('No response message from OpenAI chat completion.');
       }
     } else {
-      vscode.window.showErrorMessage('No active text editor found.');
+      showMessageWithTimeout('No active text editor found.');
     }
   } catch (error) {
     console.error('An error occurred:', error);
   }
+}
+
+function removeContextPhrases(text: string) {
+  // Define the phrases to remove
+  const phrasesToRemove = ["with context", "without context", "using context"];
+
+  // Use a regular expression to remove the phrases
+  let result = text;
+  phrasesToRemove.forEach(phrase => {
+    let regex = new RegExp("\\b" + phrase + "\\b", "gi");
+    result = result.replace(regex, '');
+  });
+
+  return result.trim();
 }
 
 export function goToCommand(transcription: string[]) {
@@ -198,10 +202,10 @@ export function goToCommand(transcription: string[]) {
           break;
 
         default:
-          vscode.window.showErrorMessage(`Unsupported goto command: ${command}`);
+          showMessageWithTimeout(`Unsupported goto command: ${command}`);
       }
     } else {
-      vscode.window.showErrorMessage('No active text editor found.');
+      showMessageWithTimeout('No active text editor found.');
     }
   } catch (error) {
     console.error('An error occurred:', error);
@@ -263,11 +267,16 @@ export function otherCommand(transcription: string[]) {
           updateStatusBar("Deleted selection", 1000);
           break;
 
+        case 'delete line':
+          deleteLine(editor);
+          updateStatusBar("Deleted the line", 1000);
+          break;
+
         case 'new line':
           newline(editor);
           updateStatusBar("Inserted a new line", 1000);
           break;
-          
+
         case 'cut':
           vscode.commands.executeCommand('editor.action.clipboardCutAction');
           updateStatusBar("Cut the selection", 1000);
@@ -283,14 +292,23 @@ export function otherCommand(transcription: string[]) {
           break;
 
         default:
-          vscode.window.showErrorMessage(`Unsupported other command: ${command}`);
+          showMessageWithTimeout(`Unsupported other command: ${command}`);
       }
     } else {
-      vscode.window.showErrorMessage('No active text editor found.');
+      showMessageWithTimeout('No active text editor found.');
     }
   } catch (error) {
     console.error('An error occurred:', error);
   }
+}
+
+function deleteLine(editor: vscode.TextEditor) {
+  const currentPosition = editor.selection.active;
+  const currentLine = editor.document.lineAt(currentPosition.line);
+  const range = new vscode.Range(currentLine.range.start, currentLine.range.end);
+  editor.edit(editBuilder => {
+    editBuilder.delete(range);
+  });
 }
 
 function newline(editor: vscode.TextEditor) {
@@ -319,7 +337,7 @@ function endSelection(editor: vscode.TextEditor) {
       const newSelection = new vscode.Selection(selectionStart, selectionEnd);
       editor.selection = newSelection;
     } else {
-      vscode.window.showErrorMessage('No start position found');
+      showMessageWithTimeout('No start position found');
     }
   } else {
     console.error('No active editor');
@@ -435,7 +453,7 @@ function goToWord(editor: vscode.TextEditor, targetWord: string) {
   }
 
   if (!found) {
-    vscode.window.showErrorMessage(`Word '${targetWord}' not found on the current line.`);
+    showMessageWithTimeout(`Word '${targetWord}' not found on the current line.`);
   }
 }
 
@@ -484,7 +502,7 @@ function paste(editor: vscode.TextEditor) {
   if (editor) {
     vscode.commands.executeCommand('editor.action.clipboardPasteAction');
   } else {
-    vscode.window.showErrorMessage('No active editor available.');
+    showMessageWithTimeout('No active editor available.');
   }
 }
 
@@ -504,7 +522,7 @@ async function copyTextToClipboard(editor: vscode.TextEditor) {
   if (editor) {
     vscode.commands.executeCommand('editor.action.clipboardCopyAction');
   } else {
-    vscode.window.showErrorMessage('No active editor available.');
+    showMessageWithTimeout('No active editor available.');
   }
 }
 
@@ -524,7 +542,7 @@ function deleteSelection(editor: vscode.TextEditor) {
       editBuilder.delete(selection); // Delete the selected text
     });
   } else {
-    vscode.window.showErrorMessage('No active text editor found.');
+    showMessageWithTimeout('No active text editor found.');
   }
 }
 
@@ -537,43 +555,48 @@ export function updateStatusBar(message: string, timeout?: number, timeoutMessag
   }
 }
 
-// export const showMessageWithTimeout = (message: string, timeout = 3000): void => {
-//   void window.withProgress(
-//     {
-//       location: vscode.ProgressLocation.Notification,
-//       title: message,
-//       cancellable: false,
-//     },
+//taken from https://github.com/mysql/mysql-shell-plugins/blob/master/gui/extension/src/utilities.ts
 
-//     async (progress): Promise<void> => {
-//       await waitFor(timeout, () => { return false; });
-//       progress.report({ increment: 100 });
-//     },
-//       },
-//   );
-// };
-
-// export const waitFor = async (timeout: number, condition: () => boolean): Promise<boolean> => {
-//   while (!condition() && timeout > 0) {
-//       timeout -= 100;
-//       await sleep(100);
-//   }
-
-//   return timeout > 0 ? true : false;
-// };
+export function showMessageWithTimeout(message: string, timeout = defaultTimeoutPopup)
+{
+  void window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: message,
+      cancellable: false,
+    },
+    async (progress): Promise<void> => {
+      await waitFor(timeout, () => { return false; });
+      progress.report({ increment: 100 });
+    });
+}
 
 
-// go to word popup feedback (done)
-// select all (done)
-// fix timeout issue (done)
-// cut (done)
+//taken from https://github.com/mysql/mysql-shell-plugins/blob/master/gui/frontend/src/utilities/helpers.ts
 
+async function waitFor (timeout: number, condition: () => boolean): Promise<boolean> {
+  while (!condition() && timeout > 0) {
+      timeout -= 100;
+      await sleep(100);
+  }
+
+  return timeout > 0 ? true : false;
+};
+export const sleep = (ms: number): Promise<unknown> => {
+  return new Promise((resolve) => {
+      return setTimeout(resolve, ms);
+  });
+};
+
+
+
+
+//handle multiple recording requests
 // compile support
-// better prompt
+// better prompt 
+
 // *
+
 // using context replace this console log with the
 // instead of fizzbuzz make it hello my name is
 
-
-// and == end (done)
-// uh == '' (done)
