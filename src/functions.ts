@@ -10,6 +10,7 @@ const openai = new OpenAI({
 let lastGoToCommand = 'word';
 let selectionStart: vscode.Position;
 let selectionEnd: vscode.Position;
+let lastApiResponse: string;
 
 export function tokenize(text: string): string[] {
   // Match words using a regular expression
@@ -38,37 +39,13 @@ export function tokenize(text: string): string[] {
   return correctedWords.filter(item => item !== '');;
 }
 
-// reminder to add compiling support for other languages as well
-// export function compileCommand() {
-//   const editor = vscode.window.activeTextEditor;
-//   if (editor) {
-//     const filePath = editor.document.uri.fsPath;
-//     if (filePath.endsWith('.py')) {
-//       const terminal = vscode.window.createTerminal('Python Terminal');
-//       terminal.sendText(`python "${filePath}"`);
-//       terminal.show();
-//     } else {
-//       showMessageWithTimeout('The file is not a Python file (.py)');
-//     }
-//   } else {
-//     showMessageWithTimeout('No active editor');
-//   }
-// }
-
 export function compileCommand() {
-  const editor = vscode.window.activeTextEditor;
-  if (editor) {
-    const filePath = editor.document.uri.fsPath;
-    if (filePath.endsWith('.py')) {
-      const terminal = vscode.window.createTerminal('Python Terminal');
-      terminal.sendText(`python "${filePath}"`);
-      terminal.show();
-    } else {
-      showMessageWithTimeout('The file is not a Python file (.py)');
-    }
-  } else {
-    showMessageWithTimeout('No active editor');
-  }
+  vscode.commands.executeCommand('workbench.action.debug.start')
+  .then(() => {
+      updateStatusBar("Debugging started!", defaultTimeout);
+  }, err => {
+      showMessageWithTimeout("Failed to start debugging: " + err);
+  });
 }
 
 
@@ -78,18 +55,19 @@ export async function writeCommand(transcription: string[]) {
   try {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
+      updateStatusBar(`Processing your command`);
       let command = removeContextPhrases(transcription.join(' ').toLowerCase());
       let languageId = editor.document.languageId;
       let userPrompt = `${command}`;
-      let systemPrompt = `You need to write strictly just ${languageId} code based on the user's request and nothing else, no other text before or after the code, just type out the code snippet. Make sure the code is always wrapped in triple backticks even if it's 1 line of code or a comment.`
+      let systemPrompt = `You need to write strictly just ${languageId} code based on what the user asks you and nothing else, no explanations needed, just the code snippet. Make sure the text is always wrapped in triple backticks even if it's 1 line of code or a comment because your answer will be typed straight into vscode. Also if the user asks you to modify something make sure you dont add extra complexity but just do the task he asked you to.`
       if (transcription[0] === 'using' || transcription[0] === 'with') {
         //use context
         const context = await getClipboardContent();
-        userPrompt += `. My code for context: \n ${context}`;
+        userPrompt += `. My code for context:\n${context?.trim()}`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4",
         messages: [{ "role": "system", "content": `${systemPrompt}` }, { "role": "user", "content": `${userPrompt}` }],
       });
       if (chatCompletion.choices && chatCompletion.choices.length > 0 && chatCompletion.choices[0].message) {
@@ -99,11 +77,12 @@ export async function writeCommand(transcription: string[]) {
         const matches = regex.exec(response);
         if (matches && matches[1]) {  // Check if there is a captured group
           const codeToInsert = matches[1].trim();  // Trim to remove any extra whitespace
-
+          lastApiResponse = codeToInsert;
           // Replace the currently selected text
           editor.edit(editBuilder => {
             editBuilder.replace(editor.selection, codeToInsert);
           });
+          updateStatusBar('Code inserted successfully', defaultTimeout);
         } else {
           showMessageWithTimeout('No code block found within the response.');
         }
@@ -221,13 +200,22 @@ export function otherCommand(transcription: string[]) {
       // Handle different cases for navigation
       const command = transcription.join(' ').toLowerCase();
 
+      const selectFromToRegex = /^select from (\d+) to (\d+)$/;
+      const selectMatch = command.match(selectFromToRegex);
+
       switch (command) {
         case 'copy':
           copyTextToClipboard(editor);
           updateStatusBar("Copied to clipboard", 1000);
           break;
 
+          case 'copy line':
+          copyLine(editor);
+          updateStatusBar("Copied line to clipboard", 1000);
+          break;
+
         case 'undo':
+          case 'and do':
           undo(editor);
           updateStatusBar("Undid last action", 1000);
           break;
@@ -240,6 +228,11 @@ export function otherCommand(transcription: string[]) {
         case 'paste':
           paste(editor);
           updateStatusBar("Pasted from clipboard", 1000);
+          break;
+
+        case 'paste previous':
+          pastePrevious(editor);
+          updateStatusBar("Pasted previous API response", 1000);
           break;
 
         case 'format document':
@@ -282,6 +275,11 @@ export function otherCommand(transcription: string[]) {
           updateStatusBar("Cut the selection", 1000);
           break;
 
+        case 'select line':
+         selectLine(editor);
+          updateStatusBar("Selected the line", 1000);
+          break;
+
         case 'select all':
           vscode.commands.executeCommand('editor.action.selectAll');
           updateStatusBar("Selected all text", 1000);
@@ -292,7 +290,15 @@ export function otherCommand(transcription: string[]) {
           break;
 
         default:
-          showMessageWithTimeout(`Unsupported other command: ${command}`);
+          if (selectMatch) {
+            const startLine = parseInt(selectMatch[1], 10);
+            const endLine = parseInt(selectMatch[2], 10);
+            selectFromTo(editor, startLine, endLine);
+            updateStatusBar(`Selected from line ${startLine} to line ${endLine}`, 1000);
+          }
+          else{
+            showMessageWithTimeout(`Unsupported other command: ${command}`);
+          }
       }
     } else {
       showMessageWithTimeout('No active text editor found.');
@@ -300,6 +306,33 @@ export function otherCommand(transcription: string[]) {
   } catch (error) {
     console.error('An error occurred:', error);
   }
+}
+
+function pastePrevious(editor: vscode.TextEditor) {
+  if (lastApiResponse) {
+    editor.edit(editBuilder => {
+      editBuilder.replace(editor.selection.active, lastApiResponse);
+    });
+  } else {
+    showMessageWithTimeout('No previous API response available.');
+  }
+
+}
+
+function selectLine(editor: vscode.TextEditor) {
+  const currentPosition = editor.selection.active;
+  const currentLine = editor.document.lineAt(currentPosition.line);
+  const range = new vscode.Range(currentLine.range.start, currentLine.range.end);
+  const newSelection = new vscode.Selection(range.start, range.end);
+  editor.selection = newSelection;
+}
+
+function copyLine(editor: vscode.TextEditor) {
+  const currentPosition = editor.selection.active;
+  const currentLine = editor.document.lineAt(currentPosition.line);
+  const range = new vscode.Range(currentLine.range.start, currentLine.range.end);
+  const text = editor.document.getText(range);
+  vscode.env.clipboard.writeText(text);
 }
 
 function deleteLine(editor: vscode.TextEditor) {
@@ -318,6 +351,13 @@ function newline(editor: vscode.TextEditor) {
   });
 }
 
+function selectFromTo(editor: vscode.TextEditor, startLine: number, endLine: number) {
+  const start = new vscode.Position(startLine - 1, 0); // Convert to zero-based index
+  const end = new vscode.Position(endLine, 0); // End line start position
+  editor.selection = new vscode.Selection(start, end);
+  editor.revealRange(new vscode.Range(start, end));
+}
+
 function startSelection(editor: vscode.TextEditor) {
   if (editor) {
     const currentPosition = editor.selection.active;
@@ -328,6 +368,8 @@ function startSelection(editor: vscode.TextEditor) {
     console.error('No active editor');
   }
 }
+
+
 
 function endSelection(editor: vscode.TextEditor) {
   if (editor) {
@@ -587,16 +629,3 @@ export const sleep = (ms: number): Promise<unknown> => {
       return setTimeout(resolve, ms);
   });
 };
-
-
-
-
-//handle multiple recording requests
-// compile support
-// better prompt 
-
-// *
-
-// using context replace this console log with the
-// instead of fizzbuzz make it hello my name is
-

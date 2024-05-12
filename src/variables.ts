@@ -9,7 +9,7 @@ export const request = {
     sampleRateHertz: sampleRateHertz,
     languageCode: languageCode,
     speechContexts: [{
-      phrases: ['new line','without context','delete', 'start selection', 
+      phrases: ['copy line', 'new line','without context','delete', 'start selection', 
       'end selection','write','format document' ,'redo' ,'undo' ,'copy' , 
       'paste' ,'comment line', 'go to previous', 'go to previous word', 
       'go to previous line', 'go to two', 'go to line', 'go to next', 

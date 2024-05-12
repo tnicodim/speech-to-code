@@ -3,12 +3,12 @@ import * as fs from './functions';
 import { defaultTimeout } from './variables';
 
 export function processTranscription(transcription: string[]) {
-  process.stdout.write('parameter: ' + transcription + '\n');
+ // process.stdout.write('parameter: ' + transcription + '\n');
 
   try {
     switch (transcription[0]) {
       case 'stop':
-        vscode.commands.executeCommand('speech-to-code.stopRecord')
+        vscode.commands.executeCommand('speech-to-code.stopRecord');
         return;
 
       case 'compile':
@@ -25,8 +25,9 @@ export function processTranscription(transcription: string[]) {
       case 'using':
       case 'with':
       case 'replace':
+        case 'declare':
         fs.writeCommand(transcription);
-        fs.updateStatusBar('Writing in progress', defaultTimeout);
+        //fs.updateStatusBar('Writing in progress', defaultTimeout);
         return;
 
       default:

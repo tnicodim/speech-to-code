@@ -7,7 +7,7 @@ const speech = require('@google-cloud/speech');
 const client = new speech.SpeechClient();
 
 let recordingTimer: NodeJS.Timeout | null = null;
-
+let isRecordingActive: boolean = false;
 // let transcriptions: any[] = [];
 let recognizeStream: any;
 let recording: any;
@@ -15,6 +15,14 @@ export let myStatusBarItem: vscode.StatusBarItem;
 
 
 function startRecording() {
+
+if (isRecordingActive){
+  showMessageWithTimeout('Recording already in progress!');
+  return;
+}
+
+isRecordingActive = true;
+
   recognizeStream = client
     .streamingRecognize(request)
     .on('error', console.error)
@@ -61,6 +69,8 @@ function startRecording() {
 function stopRecording() {
   if (recording) {
     recording.stop();
+    isRecordingActive = false;
+    showMessageWithTimeout('Recording Stopped!');
   }
   if (recognizeStream) {
     recognizeStream.destroy();
@@ -69,7 +79,7 @@ function stopRecording() {
     clearTimeout(recordingTimer);
     recordingTimer = null;
   }
-  showMessageWithTimeout('Recording Stopped!');
+  
 }
 
 export function activate(context: vscode.ExtensionContext) {
