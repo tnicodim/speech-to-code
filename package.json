@@ -2,12 +2,12 @@
   "name": "speech-to-code",
   "displayName": "Speech-to-Code",
   "description": "Code applications using your voice",
-  "version": "0.0.1",
-  "publisher":"tnicodim",
-"repository": {
+  "version": "0.0.2",
+  "publisher": "tnicodim",
+  "repository": {
     "type": "git",
     "url": "github.com/tnicodim/speech-to-code"
-},
+  },
   "engines": {
     "vscode": "^1.84.0"
   },
