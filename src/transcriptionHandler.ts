@@ -3,8 +3,6 @@ import * as fs from './functions';
 import { defaultTimeout } from './variables';
 
 export function processTranscription(transcription: string[]) {
- // process.stdout.write('parameter: ' + transcription + '\n');
-
   try {
     switch (transcription[0]) {
       case 'stop':
@@ -25,20 +23,16 @@ export function processTranscription(transcription: string[]) {
       case 'using':
       case 'with':
       case 'replace':
-        case 'declare':
+      case 'declare':
         fs.writeCommand(transcription);
-        //fs.updateStatusBar('Writing in progress', defaultTimeout);
         return;
 
       default:
         fs.otherCommand(transcription);
-        // console.log('Unknown command: ', transcription[0]);
-        // Handle unrecognized commands or add more cases as needed
         break;
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    // Handle or log the error appropriately
   }
 }
 

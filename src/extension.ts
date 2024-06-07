@@ -30,14 +30,10 @@ isRecordingActive = true;
       const transcription = data.results[0] && data.results[0].alternatives[0]
         ? data.results[0].alternatives[0].transcript
         : '\n\nReached transcription time limit\n';
-      // let correctedTranscription = transcription
-      //   .split(' ')
-      //   .map((word: string) => wordCorrections[word.toLowerCase()] || word)
-      //   .join(' ');
       if(transcription !== ''){
         processTranscription(tokenize(transcription));
-        process.stdout.write('Transcription: ' + transcription + '\n');
-        process.stdout.write('Corrected Transcription: ' + tokenize(transcription) + '\n');
+        // process.stdout.write('Transcription: ' + transcription + '\n');
+        // process.stdout.write('Corrected Transcription: ' + tokenize(transcription) + '\n');
       }
     });
 
@@ -83,20 +79,13 @@ function stopRecording() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "speech-to-code" is now active!');
+  console.log('Extension "Speech-to-Code" is now active!');
   myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
   myStatusBarItem.show();
   updateStatusBar(`$(mic) Waiting for recording to start`);
   myStatusBarItem.command = 'speech-to-code.startRecord';
   myStatusBarItem.tooltip = "Click to start voice recording";
   context.subscriptions.push(myStatusBarItem);
-
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('speech-to-code.helloWorld', () => {
-      showMessageWithTimeout("Hello World from SPC");
-    })
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('speech-to-code.startRecord', () => {
@@ -119,6 +108,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-  console.log('Extension "speech-to-code" deactivated!');
+  console.log('Extension "Speech-to-Code" deactivated!');
   myStatusBarItem.dispose();
 }

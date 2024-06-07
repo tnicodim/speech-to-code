@@ -3,6 +3,11 @@
   "displayName": "Speech-to-Code",
   "description": "Code applications using your voice",
   "version": "0.0.1",
+  "publisher":"tnicodim",
+"repository": {
+    "type": "git",
+    "url": "github.com/tnicodim/speech-to-code"
+},
   "engines": {
     "vscode": "^1.84.0"
   },
@@ -13,11 +18,6 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "speech-to-code.helloWorld",
-        "category": "Speech to Code",
-        "title": "Hello World"
-      },
       {
         "command": "speech-to-code.startRecord",
         "category": "Speech to Code",

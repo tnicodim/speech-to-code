@@ -369,8 +369,6 @@ function startSelection(editor: vscode.TextEditor) {
   }
 }
 
-
-
 function endSelection(editor: vscode.TextEditor) {
   if (editor) {
     const currentPosition = editor.selection.active;
