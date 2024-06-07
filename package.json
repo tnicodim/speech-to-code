@@ -3,7 +3,7 @@
   "displayName": "Speech-to-Code",
   "description": "Code applications using your voice",
   "icon": "images/logo.png",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "tnicodim",
   "repository": {
     "type": "git",
