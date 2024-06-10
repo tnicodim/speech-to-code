@@ -113,11 +113,8 @@ function removeContextPhrases(text: string) {
 
 export function goToCommand(transcription: string[]) {
   try {
-    // Get the active text editor
     const editor = vscode.window.activeTextEditor;
-
     if (editor) {
-      // Handle different cases for navigation
       let command = transcription.join(' ').toLowerCase();
       if (command === 'goto next' || command === 'goto previous') {
         command += lastGoToCommand;
@@ -188,7 +185,6 @@ export function goToCommand(transcription: string[]) {
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    // Handle or log the error appropriately
   }
 }
 
@@ -443,29 +439,18 @@ function goToDocumentStart(editor: vscode.TextEditor) {
 
 function goToNextWord(editor: vscode.TextEditor) {
   const currentPosition = editor.selection.active;
-  console.log('Current Position:', currentPosition);
-
   const currentLine = editor.document.lineAt(currentPosition.line);
-  console.log('Current Line:', currentLine.text);
-
   const currentLineText = currentLine.text;
   const remainingText = currentLineText.substring(currentPosition.character);
-  console.log('Remaining Text:', remainingText);
 
-  // Use a modified regex to consider the cursor position
+  // regex to search through the remaining text
   const nextWordMatch = remainingText.match(/\b(\w*)\b/);
 
   if (nextWordMatch) {
     const nextWord = nextWordMatch[1]; // Extract the matched word
-    const nextWordStart = currentPosition.character + (nextWordMatch.index ?? 0) + nextWord.length;
-    console.log('Next Word Start:', nextWordStart);
-
-    const newPosition = new vscode.Position(currentPosition.line, nextWordStart);
-    console.log('New Position:', newPosition);
-
+    const nextWordEnd = currentPosition.character + (nextWordMatch.index ?? 0) + nextWord.length;
+    const newPosition = new vscode.Position(currentPosition.line, nextWordEnd);
     const newSelection = new vscode.Selection(newPosition, newPosition);
-    console.log('New Selection:', newSelection);
-
     editor.selection = newSelection;
   }
 }
@@ -499,28 +484,17 @@ function goToWord(editor: vscode.TextEditor, targetWord: string) {
 
 function goToPreviousWord(editor: vscode.TextEditor) {
   const currentPosition = editor.selection.active;
-  console.log('Current Position:', currentPosition);
-
   const currentLine = editor.document.lineAt(currentPosition.line);
-  console.log('Current Line:', currentLine.text);
-
   const currentLineText = currentLine.text;
   const textBeforeCursor = currentLineText.substring(0, currentPosition.character);
-  console.log('Text Before Cursor:', textBeforeCursor);
 
-  // Use a modified regex to consider the cursor position
   const previousWordMatch = textBeforeCursor.match(/\b\w+\b(\W*)$/);
 
   if (previousWordMatch) {
     const previousWord = previousWordMatch[0]; // Extract the matched word
     const previousWordStart = currentPosition.character - previousWord.length;
-    console.log('Previous Word Start:', previousWordStart);
-
     const newPosition = new vscode.Position(currentPosition.line, previousWordStart);
-    console.log('New Position:', newPosition);
-
     const newSelection = new vscode.Selection(newPosition, newPosition);
-    console.log('New Selection:', newSelection);
 
     editor.selection = newSelection;
   }

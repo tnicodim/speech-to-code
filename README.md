@@ -15,4 +15,5 @@ Speech-to-Code enables developers to control Visual Studio Code using voice comm
    - Obtain an API key from [Google Cloud for the Speech-to-Text API](https://cloud.google.com/text-to-speech/docs/before-you-begin).
    - Obtain an API key from [OpenAI API](https://platform.openai.com/docs/quickstart).
    - Create 2 environment variables to store your API keys
+   - Install [SoX  version 14.4.1](https://sourceforge.net/projects/sox/files/sox/14.4.1/) and **add it** to your $PATH
    - Install the extension and run the command `Speech to Code: Start Voice Recording`
